@@ -1,0 +1,39 @@
+# Node modules
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-lock.yaml
+
+# Logs
+*.log
+logs
+
+# Next.js build output
+.next
+out
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Editor/IDE files
+.vscode
+.idea
+
+# OS metadata
+*.swp
+
+# Tests and mock data
+__tests__/
+__mocks__/
+coverage/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Env f
