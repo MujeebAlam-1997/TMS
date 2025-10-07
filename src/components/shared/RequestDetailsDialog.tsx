@@ -43,7 +43,7 @@ export default function RequestDetailsDialog({ isOpen, setIsOpen, request }: Req
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-2xl printable" data-dialog-content>
         <DialogHeader className="text-center">
-          <DialogTitle className="text-xl font-bold">Transport Management System</DialogTitle>
+          <DialogTitle className="text-xl font-bold">ABC ADMISSION OF APPLIED SCIENCES ENGINEERING</DialogTitle>
           <DialogDescription>
             Vehicle Requisition Request
           </DialogDescription>

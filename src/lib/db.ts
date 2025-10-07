@@ -115,50 +115,6 @@ function seedData() {
             db.prepare(`UPDATE users SET pdId = ? WHERE role = 'User' AND pdId IS NULL`).run(pdUser.id);
         }
     }
-
-     // --- DUMMY TRANSPORT REQUESTS SEEDING ---
-    const requestsCount = db.prepare('SELECT COUNT(*) as count FROM transport_requests').get() as { count: number };
-    if (requestsCount.count < 50) {
-        const users = db.prepare('SELECT * FROM users').all() as User[];
-        const insertRequest = db.prepare(`
-            INSERT INTO transport_requests (
-                id, employeeNumber, name, requisitionType, departingLocation, destination, "from", "to", status, requestGeneratedDate,
-                requestReason, letterId, meetingAgenda, venue, purchaseDetails, purchaseItems, purchaseCaseNumber, subject, otherPurpose, officials, pdId
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        db.transaction(() => {
-            for (let i = 1; i <= 50; i++) {
-                const user = users[i % users.length];
-                const now = new Date();
-                const from = new Date(now.getTime() + i * 60 * 60 * 1000); // i hours from now
-                const to = new Date(from.getTime() + 2 * 60 * 60 * 1000); // 2 hours after from
-                insertRequest.run(
-                    `V-REQ-${i}`,
-                    user.employeeNumber,
-                    user.name,
-                    i % 2 === 0 ? 'Official' : 'Private',
-                    `Location ${i}`,
-                    `Destination ${i}`,
-                    from.toISOString(),
-                    to.toISOString(),
-                    'Pending',
-                    now.toISOString(),
-                    `Reason for request #${i}`,
-                    `LID-${i}`,
-                    `Agenda #${i}`,
-                    `Venue #${i}`,
-                    `Purchase details #${i}`,
-                    `ItemA,ItemB`,
-                    `Case-${i}`,
-                    `Subject #${i}`,
-                    `Other purpose #${i}`,
-                    JSON.stringify([{ name: `Official ${i}`, designation: 'Officer' }]),
-                    user.pdId || null
-                );
-            }
-        })();
-    }
 }
 
 
