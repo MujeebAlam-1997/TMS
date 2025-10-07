@@ -2,9 +2,8 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import type { TransportRequest } from '@/lib/types';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
@@ -17,7 +16,9 @@ import ReviewRequestDialog from '../supervisor/ReviewRequestDialog';
 import { Card, CardContent } from '../ui/card';
 import { cn } from '@/lib/utils';
 import PDReviewRequestDialog from './PDReviewRequestDialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { DataTable, DataTableFilterMeta } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { InputText } from 'primereact/inputtext';
 
 
 interface RequestsTableProps {
@@ -156,58 +157,65 @@ export default function RequestsTable({ requests, onDataChange }: RequestsTableP
     </TooltipProvider>
   );
 
-  if (requests.length === 0) {
-    return (
-      <Card className="flex items-center justify-center p-12">
-        <p className="text-muted-foreground">No requests found.</p>
-      </Card>
-    )
-  }
+  // Do not early-return based on data length to keep Hooks order consistent
+
+  // PrimeReact DataTable with per-column filters
+  const [filters, setFilters] = useState<DataTableFilterMeta>({
+    global: { value: null, matchMode: 'contains' },
+    id: { value: null, matchMode: 'contains' },
+    name: { value: null, matchMode: 'contains' },
+    destination: { value: null, matchMode: 'contains' },
+    status: { value: null, matchMode: 'equals' },
+  });
+  const [globalFilter, setGlobalFilter] = useState<string>('');
+
+  const statusBody = (row: TransportRequest) => (
+    <Badge variant={statusVariant[row.status] || 'default'} className={cn(statusColor[row.status])}>{row.status}</Badge>
+  );
+  const dateBody = (row: TransportRequest) => format(row.from, 'PP');
+  const actionsBody = (row: TransportRequest) => <ActionsCell request={row} />;
+
+  const header = (
+    <div className="flex items-center justify-between">
+      <h2 className="text-base font-normal">Requests</h2>
+      <span className="p-input-icon-left">
+        <i className="pi pi-search" />
+        <InputText value={globalFilter} onChange={(e: any) => { setGlobalFilter(e.target.value); setFilters((f: any) => ({ ...f, global: { value: e.target.value, matchMode: 'contains' } })); }} placeholder="      Search" />
+      </span>
+    </div>
+  );
 
   return (
     <>
       <Card>
-          <div className="flex flex-col h-[600px]"> {/* or h-screen or calc height */}
-  <CardContent className="flex-1 overflow-hidden flex flex-col">
-    <ScrollArea className="flex-1 overflow-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Req. ID</TableHead>
-              <TableHead>Employee</TableHead>
-              <TableHead>Destination</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className='text-right'>
-                <span>Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {requests.map((request) => (
-              <TableRow key={request.id}>
-                <TableCell className="font-medium">{request.id}</TableCell>
-                <TableCell>{request.name}</TableCell>
-                <TableCell>{request.destination}</TableCell>
-                <TableCell>{format(request.from, 'PP')}</TableCell>
-                <TableCell>
-                  <Badge variant={statusVariant[request.status] || 'default'} className={cn(statusColor[request.status])}>{request.status}</Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <ActionsCell request={request} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        </ScrollArea>
-     
-    </CardContent>
-     </div>
-
+        <CardContent className="pt-6">
+          <DataTable
+            value={requests}
+            paginator
+            rows={10}
+            rowsPerPageOptions={[10, 20, 50]}
+            removableSort
+            sortMode="multiple"
+            filters={filters}
+            onFilter={(e: any) => setFilters(e.filters)}
+            filterDisplay="row"
+            globalFilterFields={[ 'id', 'name', 'destination', 'status' ]}
+            header={header}
+            emptyMessage="No requests found."
+            scrollable
+            scrollHeight="520px"
+            dataKey="id"
+          >
+            <Column field="id" header="Req. ID" headerClassName="!text-sm !font-normal" />
+            <Column field="name" header="Employee" headerClassName="!text-sm !font-normal" />
+            <Column field="destination" header="Destination" headerClassName="!text-sm !font-normal" />
+            <Column field="from" header="Date" body={dateBody} sortable headerClassName="!text-sm !font-normal" />
+            <Column field="status" header="Status" body={statusBody} headerClassName="!text-sm !font-normal" />
+            <Column header="Actions" body={actionsBody} headerClassName="text-right !text-sm !font-normal" bodyClassName="text-right" style={{ width: '6rem' }} />
+          </DataTable>
+        </CardContent>
       </Card>
-      
+
       {selectedRequest && (
         <>
           <RequestDetailsDialog 
