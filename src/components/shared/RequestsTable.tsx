@@ -14,9 +14,11 @@ import { useAuth } from '@/context/AuthContext';
 import RequestDetailsDialog from './RequestDetailsDialog';
 import ForwardRequestDialog from '../manager/ForwardRequestDialog';
 import ReviewRequestDialog from '../supervisor/ReviewRequestDialog';
-import { Card } from '../ui/card';
+import { Card, CardContent } from '../ui/card';
 import { cn } from '@/lib/utils';
 import PDReviewRequestDialog from './PDReviewRequestDialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
 
 interface RequestsTableProps {
   requests: TransportRequest[];
@@ -165,6 +167,9 @@ export default function RequestsTable({ requests, onDataChange }: RequestsTableP
   return (
     <>
       <Card>
+          <div className="flex flex-col h-[600px]"> {/* or h-screen or calc height */}
+  <CardContent className="flex-1 overflow-hidden flex flex-col">
+    <ScrollArea className="flex-1 overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -195,6 +200,12 @@ export default function RequestsTable({ requests, onDataChange }: RequestsTableP
             ))}
           </TableBody>
         </Table>
+
+        </ScrollArea>
+     
+    </CardContent>
+     </div>
+
       </Card>
       
       {selectedRequest && (
