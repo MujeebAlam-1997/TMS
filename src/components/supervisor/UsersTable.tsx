@@ -2,17 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { User } from '@/lib/types';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,16 +16,18 @@ import { MoreHorizontal, Edit, Trash2, PlusCircle, KeyRound } from 'lucide-react
 import { Card, CardContent } from '../ui/card';
 import AddEditUserDialog from './AddEditUserDialog';
 import DeleteUserDialog from './DeleteUserDialog';
-import { Skeleton } from '../ui/skeleton';
 import { getAllUsersAction, resetPasswordAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { DataTable, DataTableFilterMeta } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { InputText } from 'primereact/inputtext';
 
 const roleVariant: { [key: string]: 'default' | 'secondary' | 'outline' } = {
-    Manager: 'default',
-    Supervisor: 'secondary',
-    User: 'outline',
-    PD: 'destructive'
-  };
+  Manager: 'default',
+  Supervisor: 'secondary',
+  User: 'outline',
+  PD: 'destructive'
+};
 
 export default function UsersTable({ users: initialUsers }: { users: User[] }) {
   const [users, setUsers] = useState<User[]>(initialUsers);
@@ -42,17 +35,25 @@ export default function UsersTable({ users: initialUsers }: { users: User[] }) {
   const [isAddEditOpen, setAddEditOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [filters, setFilters] = useState<DataTableFilterMeta>({
+    global: { value: null, matchMode: 'contains' },
+    employeeNumber: { value: null, matchMode: 'contains' },
+    name: { value: null, matchMode: 'contains' },
+    username: { value: null, matchMode: 'contains' },
+    role: { value: null, matchMode: 'equals' },
+  });
+  const [globalFilter, setGlobalFilter] = useState<string>('');
   const { toast } = useToast();
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-        const userList = await getAllUsersAction();
-        setUsers(userList);
+      const userList = await getAllUsersAction();
+      setUsers(userList);
     } catch (error) {
-        toast({ title: 'Error fetching users', description: 'Could not retrieve user data.', variant: 'destructive' });
+      toast({ title: 'Error fetching users', description: 'Could not retrieve user data.', variant: 'destructive' });
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   }, [toast]);
 
@@ -77,18 +78,18 @@ export default function UsersTable({ users: initialUsers }: { users: User[] }) {
 
   const handleResetPassword = async (user: User) => {
     try {
-        await resetPasswordAction(user.id);
-        toast({ 
-            title: 'Password Reset Successful', 
-            description: `Password for ${user.username} has been reset.` 
-        });
-        fetchUsers();
+      await resetPasswordAction(user.id);
+      toast({
+        title: 'Password Reset Successful',
+        description: `Password for ${user.username} has been reset.`
+      });
+      fetchUsers();
     } catch (error) {
-        toast({ 
-            title: 'Password Reset Failed', 
-            description: 'Could not reset the password. Please try again.',
-            variant: 'destructive'
-        });
+      toast({
+        title: 'Password Reset Failed',
+        description: 'Could not reset the password. Please try again.',
+        variant: 'destructive'
+      });
     }
   }
 
@@ -106,7 +107,7 @@ export default function UsersTable({ users: initialUsers }: { users: User[] }) {
           <Edit className="mr-2 h-4 w-4" /> Edit User
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleResetPassword(user)}>
-            <KeyRound className="mr-2 h-4 w-4" /> Reset Password
+          <KeyRound className="mr-2 h-4 w-4" /> Reset Password
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -119,71 +120,63 @@ export default function UsersTable({ users: initialUsers }: { users: User[] }) {
     </DropdownMenu>
   );
 
+  const header = (
+    <div className="flex items-center justify-between mb-3">
+    <h2 className="text-base">Users</h2>
+    <div className="relative">
+      <i className="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      <InputText
+        value={globalFilter}
+        onChange={(e: any) => {
+          setGlobalFilter(e.target.value);
+          setFilters((f: any) => ({
+            ...f,
+            global: { value: e.target.value, matchMode: 'contains' },
+          }));
+        }}
+        placeholder="Search"
+        className="pl-10 font-normal"
+      />
+    </div>
+  </div>
+  );
+
   return (
     <>
-    <div className='-mt-8'>
+      <div className='-mt-8'>
         <Button onClick={handleAddUser}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add User
         </Button>
       </div>
       <Card>
-        <div className="flex flex-col h-[600px]"> {/* or h-screen or calc height */}
-  <CardContent className="flex-1 overflow-hidden flex flex-col">
-    <ScrollArea className="flex-1 overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee No.</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
-                  </TableRow>
-                ))
-              ) : users.length > 0 ? (
-                users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.employeeNumber}</TableCell>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.username}</TableCell>
-                    <TableCell>
-                      <Badge variant={roleVariant[user.role] || 'outline'}>
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <ActionsCell user={user} />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    No users found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </ScrollArea>
-     
-    </CardContent>
-     </div>
+        <CardContent  >
+          
 
+          <DataTable
+            value={users}
+            loading={isLoading}
+            header={header}
+            paginator
+            paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
+            currentPageReportTemplate="{first} to {last} of {totalRecords}"
+            rows={10}
+            rowsPerPageOptions={[10, 20, 50]}
+            removableSort
+            sortMode="multiple"
+            filters={filters}
+            onFilter={(e: any) => setFilters(e.filters)}
+            emptyMessage="No users found."
+            dataKey="id"
+            className="font-[Inter] text-[14px]"
+          >
+            <Column field="employeeNumber" header="Employee No." headerClassName="!text-sm  " />
+            <Column field="name" header="Name" headerClassName="!text-sm  " />
+            <Column field="username" header="Username" headerClassName="!text-sm  " />
+            <Column field="role" header="Role" headerClassName="!text-sm  " body={(u: User) => <Badge variant={roleVariant[u.role] || 'outline'}>{u.role}</Badge>} sortable />
+            <Column header="Actions" headerClassName="text-right !text-sm  " bodyClassName="text-right" body={(u: User) => <ActionsCell user={u} />} style={{ width: '6rem' }} />
+          </DataTable>
+        </CardContent>
       </Card>
 
       <AddEditUserDialog

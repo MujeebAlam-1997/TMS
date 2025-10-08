@@ -177,13 +177,25 @@ export default function RequestsTable({ requests, onDataChange }: RequestsTableP
 
   const header = (
     <div className="flex items-center justify-between">
-      <h2 className="text-base font-normal">Requests</h2>
-      <span className="p-input-icon-left">
-        <i className="pi pi-search" />
-        <InputText value={globalFilter} onChange={(e: any) => { setGlobalFilter(e.target.value); setFilters((f: any) => ({ ...f, global: { value: e.target.value, matchMode: 'contains' } })); }} placeholder="      Search" />
-      </span>
+      <h2 className="text-base  ">Requests</h2>
+      <div className="relative">
+        <i className="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <InputText
+          value={globalFilter}
+          onChange={(e: any) => {
+            setGlobalFilter(e.target.value);
+            setFilters((f: any) => ({
+              ...f,
+              global: { value: e.target.value, matchMode: 'contains' },
+            }));
+          }}
+          placeholder="Search"
+          className="pl-10 font-normal"
+        />
+      </div>
     </div>
   );
+  
 
   return (
     <>
@@ -192,26 +204,29 @@ export default function RequestsTable({ requests, onDataChange }: RequestsTableP
           <DataTable
             value={requests}
             paginator
+            paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
+             currentPageReportTemplate="{first} to {last} of {totalRecords}"
+             
             rows={10}
             rowsPerPageOptions={[10, 20, 50]}
             removableSort
             sortMode="multiple"
             filters={filters}
             onFilter={(e: any) => setFilters(e.filters)}
-            filterDisplay="row"
-            globalFilterFields={[ 'id', 'name', 'destination', 'status' ]}
+         
             header={header}
             emptyMessage="No requests found."
             scrollable
-            scrollHeight="520px"
+            scrollHeight="60vh"
             dataKey="id"
+            className="font-[Inter] text-[14px]"
           >
-            <Column field="id" header="Req. ID" headerClassName="!text-sm !font-normal" />
-            <Column field="name" header="Employee" headerClassName="!text-sm !font-normal" />
-            <Column field="destination" header="Destination" headerClassName="!text-sm !font-normal" />
-            <Column field="from" header="Date" body={dateBody} sortable headerClassName="!text-sm !font-normal" />
-            <Column field="status" header="Status" body={statusBody} headerClassName="!text-sm !font-normal" />
-            <Column header="Actions" body={actionsBody} headerClassName="text-right !text-sm !font-normal" bodyClassName="text-right" style={{ width: '6rem' }} />
+            <Column field="id" header="Req. ID" headerClassName=" !text-sm " />
+            <Column field="name" header="Employee" headerClassName="!text-sm " />
+            <Column field="destination" header="Destination" headerClassName="!text-sm " />
+            <Column field="from" header="Date" body={dateBody} sortable headerClassName="!text-sm " />
+            <Column field="status" header="Status" body={statusBody} headerClassName="!text-sm " />
+            <Column header="Actions" body={actionsBody} headerClassName="text-right !text-sm " bodyClassName="text-right" style={{ width: '6rem' }} />
           </DataTable>
         </CardContent>
       </Card>
