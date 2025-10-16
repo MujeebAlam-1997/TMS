@@ -34,7 +34,7 @@ export default function UsersTable({ users: initialUsers }: { users: User[] }) {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isAddEditOpen, setAddEditOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [filters, setFilters] = useState<DataTableFilterMeta>({
     global: { value: null, matchMode: 'contains' },
     employeeNumber: { value: null, matchMode: 'contains' },
@@ -58,8 +58,14 @@ export default function UsersTable({ users: initialUsers }: { users: User[] }) {
   }, [toast]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    // If the page already provided users, use them without refetching.
+    // Only fetch if we have no initial data.
+    if (!initialUsers || initialUsers.length === 0) {
+      fetchUsers();
+    } else {
+      setUsers(initialUsers);
+    }
+  }, [fetchUsers, initialUsers]);
 
   const handleAddUser = () => {
     setSelectedUser(null);

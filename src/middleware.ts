@@ -118,6 +118,25 @@ export async function middleware(request: NextRequest) {
 		return NextResponse.redirect(new URL('/', request.url));
 	}
 
+	// Validate that the user in the cookie still exists; if not, clear cookie and redirect to login
+	try {
+		const meUrl = new URL('/api/me', request.url);
+		const res = await fetch(meUrl, {
+			headers: {
+				cookie: request.headers.get('cookie') || ''
+			},
+			cache: 'no-store'
+		});
+		if (res.ok) {
+			const data = await res.json();
+			if (!data?.user) {
+				const redirect = NextResponse.redirect(new URL('/', request.url));
+				redirect.cookies.set({ name: 'session', value: '', path: '/', httpOnly: true, maxAge: 0, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
+				return redirect;
+			}
+		}
+	} catch {}
+
 	// Enforce role-based access for non-public routes
 	if (!isAllowedForRole(pathname, session.role)) {
 		return NextResponse.redirect(new URL('/dashboard', request.url));

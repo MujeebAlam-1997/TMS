@@ -7,18 +7,21 @@ import { randomUUID } from 'crypto';
 // Use a global singleton to prevent re-initialization during hot-reloads
 const globalForDb = global as unknown as { db: Database.Database };
 
-const db = globalForDb.db || new Database('tms.db');
-if (process.env.NODE_ENV !== 'production') globalForDb.db = db;
-
-db.pragma('journal_mode = WAL');
+let db: Database.Database;
+try {
+    db = globalForDb.db || new Database('tms.db');
+    if (process.env.NODE_ENV !== 'production') (globalForDb as any).db = db;
+    try { db.pragma('journal_mode = WAL'); } catch (e) { console.error('WAL pragma failed', e); }
+} catch (e) {
+    console.error('Failed to open database, creating new handle', e);
+    db = new Database('tms.db');
+    try { db.pragma('journal_mode = WAL'); } catch {}
+    if (process.env.NODE_ENV !== 'production') (globalForDb as any).db = db;
+}
 
 // Initial schema creation
 function createTables() {
-    // db.exec('DROP TABLE IF EXISTS users');
-    // db.exec('DROP TABLE IF EXISTS transport_requests');
-    // db.exec('DROP TABLE IF EXISTS drivers');
-    // db.exec('DROP TABLE IF EXISTS vehicles');
-
+    try {
     const createUsersTable = db.prepare(`
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
@@ -89,53 +92,67 @@ function createTables() {
         createDriversTable.run();
         createVehiclesTable.run();
     })();
+    } catch (e) {
+        console.error('createTables failed', e);
+    }
 }
 
 // Seed data if tables are empty
 function seedData() {
-    const usersCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
-    if (usersCount.count === 0) {
-        const pdId = randomUUID();
-        const users: (Omit<User, 'id'> & {id?: string})[] = [
-          { employeeNumber: '1001', username: 'supervisor', password: '123', name: 'Manager User', role: 'Manager' },
-          { employeeNumber: '1002', username: 'manager', password: '123', name: 'Supervisor User', role: 'Supervisor' },
-          { id: pdId, employeeNumber: '1004', username: 'pd', password: '123', name: 'PD User', role: 'PD' },
-          { employeeNumber: '1003', username: 'user', password: '123', name: 'Regular User', role: 'User', pdId: pdId },
-        ];
-        const insertUser = db.prepare('INSERT INTO users (id, employeeNumber, name, username, password, role, pdId) VALUES (?, ?, ?, ?, ?, ?, ?)');
-        db.transaction((users) => {
-            for (const user of users) {
-                insertUser.run(user.id || randomUUID(), user.employeeNumber, user.name, user.username, user.password, user.role, user.pdId || null);
-            }
-        })(users);
-    } else {
-        // Ensure existing users have pdId if they are a user
-        const pdUser = db.prepare(`SELECT id FROM users WHERE role = 'PD' LIMIT 1`).get() as {id: string} | undefined;
-        if(pdUser) {
-            db.prepare(`UPDATE users SET pdId = ? WHERE role = 'User' AND pdId IS NULL`).run(pdUser.id);
+    try {
+        const row = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count?: number } | undefined;
+        const count = row?.count ?? 0;
+        if (count === 0) {
+            const pdId = randomUUID();
+            const users: (Omit<User, 'id'> & {id?: string})[] = [
+              { employeeNumber: '1001', username: 'manager', password: '123', name: 'Manager User', role: 'Manager' },
+              { employeeNumber: '1002', username: 'supervisor', password: '123', name: 'Supervisor User', role: 'Supervisor' },
+              { id: pdId, employeeNumber: '1004', username: 'pd', password: '123', name: 'PD User', role: 'PD' },
+              { employeeNumber: '1003', username: 'user', password: '123', name: 'Regular User', role: 'User', pdId: pdId },
+            ];
+            const insertUser = db.prepare('INSERT INTO users (id, employeeNumber, name, username, password, role, pdId) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            db.transaction((users) => {
+                for (const user of users) {
+                    insertUser.run(user.id || randomUUID(), user.employeeNumber, user.name, user.username, user.password, user.role, user.pdId || null);
+                }
+            })(users);
+        } else {
+            try {
+                const pdUser = db.prepare(`SELECT id FROM users WHERE role = 'PD' LIMIT 1`).get() as {id: string} | undefined;
+                if(pdUser) {
+                    db.prepare(`UPDATE users SET pdId = ? WHERE role = 'User' AND pdId IS NULL`).run(pdUser.id);
+                }
+            } catch (e) { console.error('post-seed update failed', e); }
         }
+    } catch (e) {
+        console.error('seedData failed', e);
     }
 }
 
 
 // Initialize and seed the database
-createTables();
-seedData();
+try { createTables(); } catch (e) { console.error('createTables error', e); }
+try { seedData(); } catch (e) { console.error('seedData error', e); }
 
 
 // Data access functions
 export function findUserByCredentials(username: string, password?: string): User | null {
   if (!password) return null;
-  const user = db.prepare('SELECT * FROM users WHERE username = ? AND password = ?').get(username, password) as User | undefined;
-  return user || null;
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE username = ? AND password = ?').get(username, password) as User | undefined;
+    return user || null;
+  } catch (e) {
+    console.error('findUserByCredentials failed', e);
+    return null;
+  }
 }
 
 export function getAllUsers(): User[] {
-    return db.prepare('SELECT id, employeeNumber, name, username, role, password, pdId FROM users').all() as User[];
+    try { return db.prepare('SELECT id, employeeNumber, name, username, role, password, pdId FROM users').all() as User[]; } catch (e) { console.error('getAllUsers failed', e); return []; }
 }
 
 export function getAllRequests(): TransportRequest[] {
-    const rows = db.prepare(`
+    try { const rows = db.prepare(`
         SELECT 
             tr.*,
             d.name as driverName,
@@ -152,63 +169,61 @@ export function getAllRequests(): TransportRequest[] {
         to: new Date(row.to),
         requestGeneratedDate: row.requestGeneratedDate ? new Date(row.requestGeneratedDate) : new Date(row.from),
         officials: row.officials ? JSON.parse(row.officials) : [],
-    }));
+    })); } catch (e) { console.error('getAllRequests failed', e); return []; }
 }
 
 export function addUser(user: Omit<User, 'id'>) {
-    const id = randomUUID();
-    const { employeeNumber, name, username, password, role, pdId } = user;
-    db.prepare('INSERT INTO users (id, employeeNumber, name, username, password, role, pdId) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id, employeeNumber, name, username, password, role, pdId);
+    try {
+        const id = randomUUID();
+        const { employeeNumber, name, username, password, role, pdId } = user;
+        db.prepare('INSERT INTO users (id, employeeNumber, name, username, password, role, pdId) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id, employeeNumber, name, username, password, role, pdId);
+    } catch (e) { console.error('addUser failed', e); }
 }
 
 export function updateUser(user: User) {
-    const { id, employeeNumber, name, username, password, role, pdId } = user;
-    db.prepare('UPDATE users SET employeeNumber = ?, name = ?, username = ?, password = ?, role = ?, pdId = ? WHERE id = ?').run(employeeNumber, name, username, password, role, pdId, id);
+    try {
+        const { id, employeeNumber, name, username, password, role, pdId } = user;
+        db.prepare('UPDATE users SET employeeNumber = ?, name = ?, username = ?, password = ?, role = ?, pdId = ? WHERE id = ?').run(employeeNumber, name, username, password, role, pdId, id);
+    } catch (e) { console.error('updateUser failed', e); }
 }
 
 export function deleteUser(userId: string) {
-    db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+    try { db.prepare('DELETE FROM users WHERE id = ?').run(userId); } catch (e) { console.error('deleteUser failed', e); }
 }
 
 export function resetPassword(userId: string) {
-    const user = db.prepare('SELECT employeeNumber FROM users WHERE id = ?').get(userId) as { employeeNumber: string } | undefined;
-    if (user) {
-        const newPassword = `${user.employeeNumber}${user.employeeNumber}${user.employeeNumber}`;
-        db.prepare('UPDATE users SET password = ? WHERE id = ?').run(newPassword, userId);
-    }
+    try {
+        const user = db.prepare('SELECT employeeNumber FROM users WHERE id = ?').get(userId) as { employeeNumber: string } | undefined;
+        if (user) {
+            const newPassword = `${user.employeeNumber}${user.employeeNumber}${user.employeeNumber}`;
+            db.prepare('UPDATE users SET password = ? WHERE id = ?').run(newPassword, userId);
+        }
+    } catch (e) { console.error('resetPassword failed', e); }
 }
 
 export function changePassword(userId: string, oldPassword: string, newPassword: string): { success: boolean, error?: string } {
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as User | undefined;
-
-    if (!user) {
-        return { success: false, error: 'User not found.' };
-    }
-
-    if (user.password !== oldPassword) {
-        return { success: false, error: 'Incorrect old password.' };
-    }
-
-    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(newPassword, userId);
-    return { success: true };
+    try {
+        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as User | undefined;
+        if (!user) return { success: false, error: 'User not found.' };
+        if (user.password !== oldPassword) return { success: false, error: 'Incorrect old password.' };
+        db.prepare('UPDATE users SET password = ? WHERE id = ?').run(newPassword, userId);
+        return { success: true };
+    } catch (e) { console.error('changePassword failed', e); return { success: false, error: 'Unexpected error' }; }
 }
 
 
 export function addRequest(request: Omit<TransportRequest, 'id' | 'status'>) {
-    const lastRequest = db.prepare('SELECT id FROM transport_requests ORDER BY id DESC LIMIT 1').get() as { id: string } | undefined;
-    
-    let nextIdNumber = 1;
-    if (lastRequest && lastRequest.id.startsWith('V-REQ-')) {
-        const lastIdNumber = parseInt(lastRequest.id.split('-')[2], 10);
-        if (!isNaN(lastIdNumber)) {
-            nextIdNumber = lastIdNumber + 1;
+    try {
+        const lastRequest = db.prepare('SELECT id FROM transport_requests ORDER BY id DESC LIMIT 1').get() as { id: string } | undefined;
+        let nextIdNumber = 1;
+        if (lastRequest && lastRequest.id.startsWith('V-REQ-')) {
+            const lastIdNumber = parseInt(lastRequest.id.split('-')[2], 10);
+            if (!isNaN(lastIdNumber)) nextIdNumber = lastIdNumber + 1;
         }
-    }
-    
-    const id = `V-REQ-${nextIdNumber}`;
-    const status: TransportRequest['status'] = 'Pending';
+        const id = `V-REQ-${nextIdNumber}`;
+        const status: TransportRequest['status'] = 'Pending';
 
-    db.prepare(`
+        db.prepare(`
         INSERT INTO transport_requests 
         (id, employeeNumber, name, requisitionType, departingLocation, destination, "from", "to", status, requestGeneratedDate,
          requestReason, letterId, meetingAgenda, venue, purchaseDetails, purchaseItems, purchaseCaseNumber, subject, otherPurpose, officials, pdId) 
@@ -236,10 +251,11 @@ export function addRequest(request: Omit<TransportRequest, 'id' | 'status'>) {
         JSON.stringify(request.officials),
         request.pdId
     );
+    } catch (e) { console.error('addRequest failed', e); }
 }
 
 export function forwardRequest(data: { id: string; driverId: string; vehicleId: string; managerComments?: string; forwardedBy: string; }) {
-    db.prepare(`
+    try { db.prepare(`
         UPDATE transport_requests 
         SET status = 'Forwarded', 
             driverId = ?, 
@@ -247,11 +263,11 @@ export function forwardRequest(data: { id: string; driverId: string; vehicleId: 
             managerComments = ?,
             forwardedBy = ?
         WHERE id = ?
-    `).run(data.driverId, data.vehicleId, data.managerComments, data.forwardedBy, data.id);
+    `).run(data.driverId, data.vehicleId, data.managerComments, data.forwardedBy, data.id); } catch (e) { console.error('forwardRequest failed', e); }
 }
 
 export function reviewRequest(data: { id: string; status: 'Approved' | 'Disapproved' | 'Recommended' | 'Not Recommended'; supervisorComments?: string; pdComments?: string; reviewedBy?: string; recommendedBy?: string; }) {
-    if (data.status === 'Recommended' || data.status === 'Not Recommended') {
+    try { if (data.status === 'Recommended' || data.status === 'Not Recommended') {
          db.prepare(`
             UPDATE transport_requests 
             SET status = ?, 
@@ -267,51 +283,46 @@ export function reviewRequest(data: { id: string; status: 'Approved' | 'Disappro
                 reviewedBy = ?
             WHERE id = ?
         `).run(data.status, data.supervisorComments, data.reviewedBy, data.id);
-    }
+    } } catch (e) { console.error('reviewRequest failed', e); }
 }
 
 // Fleet Management Functions
 export function getAllDrivers(): Driver[] {
-    return db.prepare('SELECT * FROM drivers').all() as Driver[];
+    try { return db.prepare('SELECT * FROM drivers').all() as Driver[]; } catch (e) { console.error('getAllDrivers failed', e); return []; }
 }
 
 export function addDriver(driver: Omit<Driver, 'id'>): void {
-  const existing = db
-    .prepare('SELECT id FROM drivers WHERE name = ? AND contact = ?')
-    .get(driver.name, driver.contact);
-
-  if (existing) {
-    throw new Error('Driver with the same name and contact already exists.');
-  }
-
-  const id = randomUUID();
-  db.prepare('INSERT INTO drivers (id, name, contact) VALUES (?, ?, ?)').run(id, driver.name, driver.contact);
+  try {
+    const existing = db.prepare('SELECT id FROM drivers WHERE name = ? AND contact = ?').get(driver.name, driver.contact);
+    if (existing) throw new Error('Driver with the same name and contact already exists.');
+    const id = randomUUID();
+    db.prepare('INSERT INTO drivers (id, name, contact) VALUES (?, ?, ?)').run(id, driver.name, driver.contact);
+  } catch (e) { console.error('addDriver failed', e); }
 }
 
 
 export function updateDriver(driver: Driver): void {
-    db.prepare('UPDATE drivers SET name = ?, contact = ? WHERE id = ?').run(driver.name, driver.contact, driver.id);
+    try { db.prepare('UPDATE drivers SET name = ?, contact = ? WHERE id = ?').run(driver.name, driver.contact, driver.id); } catch (e) { console.error('updateDriver failed', e); }
 }
 
 export function deleteDriver(driverId: string): void {
-    db.prepare('DELETE FROM drivers WHERE id = ?').run(driverId);
+    try { db.prepare('DELETE FROM drivers WHERE id = ?').run(driverId); } catch (e) { console.error('deleteDriver failed', e); }
 }
 
 export function getAllVehicles(): Vehicle[] {
-    return db.prepare('SELECT * FROM vehicles').all() as Vehicle[];
+    try { return db.prepare('SELECT * FROM vehicles').all() as Vehicle[]; } catch (e) { console.error('getAllVehicles failed', e); return []; }
 }
 
 export function addVehicle(vehicle: Omit<Vehicle, 'id'>): void {
-    const id = randomUUID();
-    db.prepare('INSERT INTO vehicles (id, vehicleId, type) VALUES (?, ?, ?)').run(id, vehicle.vehicleId, vehicle.type);
+    try { const id = randomUUID(); db.prepare('INSERT INTO vehicles (id, vehicleId, type) VALUES (?, ?, ?)').run(id, vehicle.vehicleId, vehicle.type); } catch (e) { console.error('addVehicle failed', e); }
 }
 
 export function updateVehicle(vehicle: Vehicle): void {
-    db.prepare('UPDATE vehicles SET vehicleId = ?, type = ? WHERE id = ?').run(vehicle.vehicleId, vehicle.type, vehicle.id);
+    try { db.prepare('UPDATE vehicles SET vehicleId = ?, type = ? WHERE id = ?').run(vehicle.vehicleId, vehicle.type, vehicle.id); } catch (e) { console.error('updateVehicle failed', e); }
 }
 
 export function deleteVehicle(vehicleId: string): void {
-    db.prepare('DELETE FROM vehicles WHERE id = ?').run(vehicleId);
+    try { db.prepare('DELETE FROM vehicles WHERE id = ?').run(vehicleId); } catch (e) { console.error('deleteVehicle failed', e); }
 }
 
 
