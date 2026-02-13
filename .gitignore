@@ -43,3 +43,8 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+*.tar
+*.7z
+*.db
+*.db-shm
+*.db-wal

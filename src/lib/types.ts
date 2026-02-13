@@ -20,7 +20,7 @@ export interface Official {
 }
 
 export type TransportRequest = {
-  id: string;
+  id: number;
   employeeNumber: string;
   name: string;
   requisitionType: 'Official' | 'Private';
@@ -67,7 +67,7 @@ export type Vehicle = {
 };
 
 export type Driver = {
-    id: string;
-    name: string;
-    contact: string;
+  id: string;
+  name: string;
+  contact: string;
 }

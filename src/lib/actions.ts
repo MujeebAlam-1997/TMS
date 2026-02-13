@@ -2,10 +2,10 @@
 
 'use server';
 
-import { 
-    findUserByCredentials, 
-    getAllRequests, 
-    getAllUsers, 
+import {
+    findUserByCredentials,
+    getAllRequests,
+    getAllUsers,
     addUser,
     updateUser,
     deleteUser,
@@ -27,10 +27,10 @@ import type { TransportRequest, User, Driver, Vehicle } from './types';
 import { revalidatePath } from 'next/cache';
 
 export async function loginAction(
-  username: string,
-  password?: string
+    username: string,
+    password?: string
 ): Promise<User | null> {
-  return findUserByCredentials(username, password);
+    return findUserByCredentials(username, password);
 }
 
 export async function getAllUsersAction(): Promise<User[]> {
@@ -61,7 +61,7 @@ export async function resetPasswordAction(userId: string): Promise<void> {
     revalidatePath('/admin/users');
 }
 
-export async function changePasswordAction(data: {userId: string, oldPassword: string, newPassword: string}):Promise<{success: boolean; error?: string}> {
+export async function changePasswordAction(data: { userId: string, oldPassword: string, newPassword: string }): Promise<{ success: boolean; error?: string }> {
     return changePassword(data.userId, data.oldPassword, data.newPassword);
 }
 
@@ -73,7 +73,7 @@ export async function addRequestAction(request: Omit<TransportRequest, 'id' | 's
 }
 
 export async function forwardRequestAction(data: {
-    id: string;
+    id: number;
     driverId: string;
     vehicleId: string;
     managerComments?: string;
@@ -85,7 +85,7 @@ export async function forwardRequestAction(data: {
 }
 
 export async function reviewRequestAction(data: {
-    id: string;
+    id: number;
     status: 'Approved' | 'Disapproved' | 'Recommended' | 'Not Recommended';
     supervisorComments?: string; // Manager's comments
     pdComments?: string;

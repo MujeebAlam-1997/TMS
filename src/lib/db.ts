@@ -15,14 +15,14 @@ try {
 } catch (e) {
     console.error('Failed to open database, creating new handle', e);
     db = new Database('tms.db');
-    try { db.pragma('journal_mode = WAL'); } catch {}
+    try { db.pragma('journal_mode = WAL'); } catch { }
     if (process.env.NODE_ENV !== 'production') (globalForDb as any).db = db;
 }
 
 // Initial schema creation
 function createTables() {
     try {
-    const createUsersTable = db.prepare(`
+        const createUsersTable = db.prepare(`
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             employeeNumber TEXT NOT NULL UNIQUE,
@@ -34,9 +34,9 @@ function createTables() {
         );
     `);
 
-    const createRequestsTable = db.prepare(`
+        const createRequestsTable = db.prepare(`
         CREATE TABLE IF NOT EXISTS transport_requests (
-            id TEXT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             employeeNumber TEXT NOT NULL,
             name TEXT NOT NULL,
             requisitionType TEXT NOT NULL CHECK(requisitionType IN ('Official', 'Private')),
@@ -69,8 +69,8 @@ function createTables() {
             vehicleId TEXT
         );
     `);
-    
-    const createDriversTable = db.prepare(`
+
+        const createDriversTable = db.prepare(`
         CREATE TABLE IF NOT EXISTS drivers (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -78,7 +78,7 @@ function createTables() {
         )
     `);
 
-    const createVehiclesTable = db.prepare(`
+        const createVehiclesTable = db.prepare(`
         CREATE TABLE IF NOT EXISTS vehicles (
             id TEXT PRIMARY KEY,
             vehicleId TEXT NOT NULL UNIQUE,
@@ -86,12 +86,12 @@ function createTables() {
         )
     `);
 
-    db.transaction(() => {
-        createUsersTable.run();
-        createRequestsTable.run();
-        createDriversTable.run();
-        createVehiclesTable.run();
-    })();
+        db.transaction(() => {
+            createUsersTable.run();
+            createRequestsTable.run();
+            createDriversTable.run();
+            createVehiclesTable.run();
+        })();
     } catch (e) {
         console.error('createTables failed', e);
     }
@@ -104,11 +104,11 @@ function seedData() {
         const count = row?.count ?? 0;
         if (count === 0) {
             const pdId = randomUUID();
-            const users: (Omit<User, 'id'> & {id?: string})[] = [
-              { employeeNumber: '1001', username: 'manager', password: '123', name: 'Manager User', role: 'Manager' },
-              { employeeNumber: '1002', username: 'supervisor', password: '123', name: 'Supervisor User', role: 'Supervisor' },
-              { id: pdId, employeeNumber: '1004', username: 'pd', password: '123', name: 'PD User', role: 'PD' },
-              { employeeNumber: '1003', username: 'user', password: '123', name: 'Regular User', role: 'User', pdId: pdId },
+            const users: (Omit<User, 'id'> & { id?: string })[] = [
+                { employeeNumber: '1001', username: 'manager', password: '123', name: 'Manager User', role: 'Manager' },
+                { employeeNumber: '1002', username: 'supervisor', password: '123', name: 'Supervisor User', role: 'Supervisor' },
+                { id: pdId, employeeNumber: '1004', username: 'pd', password: '123', name: 'PD User', role: 'PD' },
+                { employeeNumber: '1003', username: 'user', password: '123', name: 'Regular User', role: 'User', pdId: pdId },
             ];
             const insertUser = db.prepare('INSERT INTO users (id, employeeNumber, name, username, password, role, pdId) VALUES (?, ?, ?, ?, ?, ?, ?)');
             db.transaction((users) => {
@@ -118,8 +118,8 @@ function seedData() {
             })(users);
         } else {
             try {
-                const pdUser = db.prepare(`SELECT id FROM users WHERE role = 'PD' LIMIT 1`).get() as {id: string} | undefined;
-                if(pdUser) {
+                const pdUser = db.prepare(`SELECT id FROM users WHERE role = 'PD' LIMIT 1`).get() as { id: string } | undefined;
+                if (pdUser) {
                     db.prepare(`UPDATE users SET pdId = ? WHERE role = 'User' AND pdId IS NULL`).run(pdUser.id);
                 }
             } catch (e) { console.error('post-seed update failed', e); }
@@ -137,14 +137,14 @@ try { seedData(); } catch (e) { console.error('seedData error', e); }
 
 // Data access functions
 export function findUserByCredentials(username: string, password?: string): User | null {
-  if (!password) return null;
-  try {
-    const user = db.prepare('SELECT * FROM users WHERE username = ? AND password = ?').get(username, password) as User | undefined;
-    return user || null;
-  } catch (e) {
-    console.error('findUserByCredentials failed', e);
-    return null;
-  }
+    if (!password) return null;
+    try {
+        const user = db.prepare('SELECT * FROM users WHERE username = ? AND password = ?').get(username, password) as User | undefined;
+        return user || null;
+    } catch (e) {
+        console.error('findUserByCredentials failed', e);
+        return null;
+    }
 }
 
 export function getAllUsers(): User[] {
@@ -152,7 +152,8 @@ export function getAllUsers(): User[] {
 }
 
 export function getAllRequests(): TransportRequest[] {
-    try { const rows = db.prepare(`
+    try {
+        const rows = db.prepare(`
         SELECT 
             tr.*,
             d.name as driverName,
@@ -163,13 +164,14 @@ export function getAllRequests(): TransportRequest[] {
         LEFT JOIN vehicles v ON tr.vehicleId = v.id
         ORDER BY tr.requestGeneratedDate DESC
     `).all() as any[];
-    return rows.map(row => ({
-        ...row,
-        from: new Date(row.from),
-        to: new Date(row.to),
-        requestGeneratedDate: row.requestGeneratedDate ? new Date(row.requestGeneratedDate) : new Date(row.from),
-        officials: row.officials ? JSON.parse(row.officials) : [],
-    })); } catch (e) { console.error('getAllRequests failed', e); return []; }
+        return rows.map(row => ({
+            ...row,
+            from: new Date(row.from),
+            to: new Date(row.to),
+            requestGeneratedDate: row.requestGeneratedDate ? new Date(row.requestGeneratedDate) : new Date(row.from),
+            officials: row.officials ? JSON.parse(row.officials) : [],
+        }));
+    } catch (e) { console.error('getAllRequests failed', e); return []; }
 }
 
 export function addUser(user: Omit<User, 'id'>) {
@@ -214,48 +216,41 @@ export function changePassword(userId: string, oldPassword: string, newPassword:
 
 export function addRequest(request: Omit<TransportRequest, 'id' | 'status'>) {
     try {
-        const lastRequest = db.prepare('SELECT id FROM transport_requests ORDER BY id DESC LIMIT 1').get() as { id: string } | undefined;
-        let nextIdNumber = 1;
-        if (lastRequest && lastRequest.id.startsWith('V-REQ-')) {
-            const lastIdNumber = parseInt(lastRequest.id.split('-')[2], 10);
-            if (!isNaN(lastIdNumber)) nextIdNumber = lastIdNumber + 1;
-        }
-        const id = `V-REQ-${nextIdNumber}`;
         const status: TransportRequest['status'] = 'Pending';
 
         db.prepare(`
         INSERT INTO transport_requests 
-        (id, employeeNumber, name, requisitionType, departingLocation, destination, "from", "to", status, requestGeneratedDate,
+        (employeeNumber, name, requisitionType, departingLocation, destination, "from", "to", status, requestGeneratedDate,
          requestReason, letterId, meetingAgenda, venue, purchaseDetails, purchaseItems, purchaseCaseNumber, subject, otherPurpose, officials, pdId) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-        id, 
-        request.employeeNumber, 
-        request.name, 
-        request.requisitionType, 
-        request.departingLocation, 
-        request.destination, 
-        request.from.toISOString(), 
-        request.to.toISOString(), 
-        status,
-        request.requestGeneratedDate.toISOString(),
-        request.requestReason,
-        request.letterId,
-        request.meetingAgenda,
-        request.venue,
-        request.purchaseDetails,
-        request.purchaseItems,
-        request.purchaseCaseNumber,
-        request.subject,
-        request.otherPurpose,
-        JSON.stringify(request.officials),
-        request.pdId
-    );
+            request.employeeNumber,
+            request.name,
+            request.requisitionType,
+            request.departingLocation,
+            request.destination,
+            request.from.toISOString(),
+            request.to.toISOString(),
+            status,
+            request.requestGeneratedDate.toISOString(),
+            request.requestReason,
+            request.letterId,
+            request.meetingAgenda,
+            request.venue,
+            request.purchaseDetails,
+            request.purchaseItems,
+            request.purchaseCaseNumber,
+            request.subject,
+            request.otherPurpose,
+            JSON.stringify(request.officials),
+            request.pdId
+        );
     } catch (e) { console.error('addRequest failed', e); }
 }
 
-export function forwardRequest(data: { id: string; driverId: string; vehicleId: string; managerComments?: string; forwardedBy: string; }) {
-    try { db.prepare(`
+export function forwardRequest(data: { id: number; driverId: string; vehicleId: string; managerComments?: string; forwardedBy: string; }) {
+    try {
+        db.prepare(`
         UPDATE transport_requests 
         SET status = 'Forwarded', 
             driverId = ?, 
@@ -263,27 +258,30 @@ export function forwardRequest(data: { id: string; driverId: string; vehicleId: 
             managerComments = ?,
             forwardedBy = ?
         WHERE id = ?
-    `).run(data.driverId, data.vehicleId, data.managerComments, data.forwardedBy, data.id); } catch (e) { console.error('forwardRequest failed', e); }
+    `).run(data.driverId, data.vehicleId, data.managerComments, data.forwardedBy, data.id);
+    } catch (e) { console.error('forwardRequest failed', e); }
 }
 
-export function reviewRequest(data: { id: string; status: 'Approved' | 'Disapproved' | 'Recommended' | 'Not Recommended'; supervisorComments?: string; pdComments?: string; reviewedBy?: string; recommendedBy?: string; }) {
-    try { if (data.status === 'Recommended' || data.status === 'Not Recommended') {
-         db.prepare(`
+export function reviewRequest(data: { id: number; status: 'Approved' | 'Disapproved' | 'Recommended' | 'Not Recommended'; supervisorComments?: string; pdComments?: string; reviewedBy?: string; recommendedBy?: string; }) {
+    try {
+        if (data.status === 'Recommended' || data.status === 'Not Recommended') {
+            db.prepare(`
             UPDATE transport_requests 
             SET status = ?, 
                 pdComments = ?,
                 recommendedBy = ?
             WHERE id = ?
         `).run(data.status, data.pdComments, data.recommendedBy, data.id);
-    } else {
-        db.prepare(`
+        } else {
+            db.prepare(`
             UPDATE transport_requests 
             SET status = ?, 
                 supervisorComments = ?,
                 reviewedBy = ?
             WHERE id = ?
         `).run(data.status, data.supervisorComments, data.reviewedBy, data.id);
-    } } catch (e) { console.error('reviewRequest failed', e); }
+        }
+    } catch (e) { console.error('reviewRequest failed', e); }
 }
 
 // Fleet Management Functions
@@ -292,12 +290,12 @@ export function getAllDrivers(): Driver[] {
 }
 
 export function addDriver(driver: Omit<Driver, 'id'>): void {
-  try {
-    const existing = db.prepare('SELECT id FROM drivers WHERE name = ? AND contact = ?').get(driver.name, driver.contact);
-    if (existing) throw new Error('Driver with the same name and contact already exists.');
-    const id = randomUUID();
-    db.prepare('INSERT INTO drivers (id, name, contact) VALUES (?, ?, ?)').run(id, driver.name, driver.contact);
-  } catch (e) { console.error('addDriver failed', e); }
+    try {
+        const existing = db.prepare('SELECT id FROM drivers WHERE name = ? AND contact = ?').get(driver.name, driver.contact);
+        if (existing) throw new Error('Driver with the same name and contact already exists.');
+        const id = randomUUID();
+        db.prepare('INSERT INTO drivers (id, name, contact) VALUES (?, ?, ?)').run(id, driver.name, driver.contact);
+    } catch (e) { console.error('addDriver failed', e); }
 }
 
 
@@ -330,12 +328,12 @@ export default db;
 
 // Maintenance helpers
 export function closeDatabaseForRestore(): void {
-	try {
-		// Close current connection to release file locks (important on Windows)
-		(db as unknown as Database.Database).close();
-		// Remove global reference so a fresh connection will be created on next load
-		try { (global as any).db = undefined; } catch (_) {}
-	} catch (_) {
-		// Ignore errors on close; replacement will proceed
-	}
+    try {
+        // Close current connection to release file locks (important on Windows)
+        (db as unknown as Database.Database).close();
+        // Remove global reference so a fresh connection will be created on next load
+        try { (global as any).db = undefined; } catch (_) { }
+    } catch (_) {
+        // Ignore errors on close; replacement will proceed
+    }
 }
