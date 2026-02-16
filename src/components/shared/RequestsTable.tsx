@@ -37,11 +37,11 @@ const statusVariant: { [key: string]: 'default' | 'secondary' | 'destructive' | 
 };
 
 const statusColor: { [key: string]: string } = {
-    Pending: 'bg-yellow-400 text-black hover:bg-yellow-400/80',
-    Approved: 'bg-green-500 hover:bg-green-500/80',
-    Disapproved: 'bg-red-500 hover:bg-red-500/80',
-    Recommended: 'bg-blue-500 hover:bg-blue-500/80',
-    'Not Recommended': 'bg-orange-500 hover:bg-orange-500/80'
+  Pending: 'bg-yellow-400 text-black hover:bg-yellow-400/80',
+  Approved: 'bg-green-500 hover:bg-green-500/80',
+  Disapproved: 'bg-red-500 hover:bg-red-500/80',
+  Recommended: 'bg-blue-500 hover:bg-blue-500/80',
+  'Not Recommended': 'bg-orange-500 hover:bg-orange-500/80'
 }
 
 export default function RequestsTable({ requests, onDataChange }: RequestsTableProps) {
@@ -66,7 +66,7 @@ export default function RequestsTable({ requests, onDataChange }: RequestsTableP
     setSelectedRequest(request);
     setForwardOpen(true);
   };
-  
+
   const handleReview = (request: TransportRequest, action: 'Approve' | 'Disapprove') => {
     setSelectedRequest(request);
     setReviewAction(action);
@@ -132,26 +132,26 @@ export default function RequestsTable({ requests, onDataChange }: RequestsTableP
         )}
 
         {userRole === 'PD' && request.status === 'Pending' && (
-            <>
-                <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePDReview(request, 'Recommend')}>
-                    <ThumbsUp className="h-4 w-4 text-green-500" />
-                    <span className="sr-only">Recommend</span>
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>Recommend</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePDReview(request, 'Not Recommend')}>
-                    <ThumbsDown className="h-4 w-4 text-red-500" />
-                    <span className="sr-only">Not Recommend</span>
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>Not Recommend</TooltipContent>
-                </Tooltip>
-            </>
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePDReview(request, 'Recommend')}>
+                  <ThumbsUp className="h-4 w-4 text-green-500" />
+                  <span className="sr-only">Recommend</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Recommend</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePDReview(request, 'Not Recommend')}>
+                  <ThumbsDown className="h-4 w-4 text-red-500" />
+                  <span className="sr-only">Not Recommend</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Not Recommend</TooltipContent>
+            </Tooltip>
+          </>
         )}
       </div>
     </TooltipProvider>
@@ -165,6 +165,8 @@ export default function RequestsTable({ requests, onDataChange }: RequestsTableP
     id: { value: null, matchMode: 'contains' },
     name: { value: null, matchMode: 'contains' },
     destination: { value: null, matchMode: 'contains' },
+    driverName: { value: null, matchMode: 'contains' },
+    vehicleNumber: { value: null, matchMode: 'contains' },
     status: { value: null, matchMode: 'equals' },
   });
   const [globalFilter, setGlobalFilter] = useState<string>('');
@@ -195,7 +197,7 @@ export default function RequestsTable({ requests, onDataChange }: RequestsTableP
       </div>
     </div>
   );
-  
+
 
   return (
     <>
@@ -205,15 +207,15 @@ export default function RequestsTable({ requests, onDataChange }: RequestsTableP
             value={requests}
             paginator
             paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
-             currentPageReportTemplate="{first} to {last} of {totalRecords}"
-             
+            currentPageReportTemplate="{first} to {last} of {totalRecords}"
+
             rows={10}
             rowsPerPageOptions={[10, 20, 50]}
             removableSort
             sortMode="multiple"
             filters={filters}
             onFilter={(e: any) => setFilters(e.filters)}
-         
+
             header={header}
             emptyMessage="No requests found."
             scrollable
@@ -224,6 +226,8 @@ export default function RequestsTable({ requests, onDataChange }: RequestsTableP
             <Column field="id" header="Req. ID" headerClassName=" !text-sm " />
             <Column field="name" header="Employee" headerClassName="!text-sm " />
             <Column field="destination" header="Destination" headerClassName="!text-sm " />
+            <Column field="driverName" header="Driver" headerClassName="!text-sm " />
+            <Column field="vehicleNumber" header="Vehicle ID" headerClassName="!text-sm " />
             <Column field="from" header="Date" body={dateBody} sortable headerClassName="!text-sm " />
             <Column field="status" header="Status" body={statusBody} headerClassName="!text-sm " />
             <Column header="Actions" body={actionsBody} headerClassName="text-right !text-sm " bodyClassName="text-right" style={{ width: '6rem' }} />
@@ -233,14 +237,14 @@ export default function RequestsTable({ requests, onDataChange }: RequestsTableP
 
       {selectedRequest && (
         <>
-          <RequestDetailsDialog 
-            isOpen={isDetailsOpen} 
-            setIsOpen={setDetailsOpen} 
+          <RequestDetailsDialog
+            isOpen={isDetailsOpen}
+            setIsOpen={setDetailsOpen}
             request={selectedRequest}
           />
           <ForwardRequestDialog isOpen={isForwardOpen} setIsOpen={setForwardOpen} request={selectedRequest} onForwarded={handleDataChange} />
-          <ReviewRequestDialog isOpen={isReviewOpen} setIsOpen={setReviewOpen} request={selectedRequest} action={reviewAction as 'Approve' | 'Disapprove'} onReviewed={handleDataChange}/>
-          <PDReviewRequestDialog isOpen={isPDReviewOpen} setIsOpen={setPDReviewOpen} request={selectedRequest} action={reviewAction as 'Recommend' | 'Not Recommend'} onReviewed={handleDataChange}/>
+          <ReviewRequestDialog isOpen={isReviewOpen} setIsOpen={setReviewOpen} request={selectedRequest} action={reviewAction as 'Approve' | 'Disapprove'} onReviewed={handleDataChange} />
+          <PDReviewRequestDialog isOpen={isPDReviewOpen} setIsOpen={setPDReviewOpen} request={selectedRequest} action={reviewAction as 'Recommend' | 'Not Recommend'} onReviewed={handleDataChange} />
         </>
       )}
     </>

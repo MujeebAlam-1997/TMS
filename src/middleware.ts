@@ -10,11 +10,11 @@ function base64url(input: ArrayBuffer): string {
 	const bytes = new Uint8Array(input);
 	let binary = '';
 	for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-	return btoa(binary).replace(/=+$/,'').replace(/\+/g,'-').replace(/\//g,'_');
+	return btoa(binary).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
 
 function base64urlToString(s: string): string {
-	let b64 = s.replace(/-/g,'+').replace(/_/g,'/');
+	let b64 = s.replace(/-/g, '+').replace(/_/g, '/');
 	while (b64.length % 4) b64 += '=';
 	const bin = atob(b64);
 	return bin;
@@ -33,7 +33,7 @@ async function hmacSHA256(message: string, secret: string): Promise<string> {
 	return base64url(sig);
 }
 
-async function decodeSessionEdge(token: string | null | undefined): Promise<null | { id: string; role: Role; exp: number }>{
+async function decodeSessionEdge(token: string | null | undefined): Promise<null | { id: string; role: Role; exp: number }> {
 	if (!token) return null;
 	const parts = token.split('.');
 	if (parts.length !== 2) return null;
@@ -71,7 +71,8 @@ function isAllowedForRole(pathname: string, role: Role): boolean {
 			pathname.startsWith('/dashboard') ||
 			pathname.startsWith('/requests') ||
 			pathname.startsWith('/admin') ||
-			pathname.startsWith('/manager')
+			pathname.startsWith('/manager') ||
+			pathname.startsWith('/reports')
 		);
 	}
 	if (role === 'Supervisor') {
@@ -135,7 +136,7 @@ export async function middleware(request: NextRequest) {
 				return redirect;
 			}
 		}
-	} catch {}
+	} catch { }
 
 	// Enforce role-based access for non-public routes
 	if (!isAllowedForRole(pathname, session.role)) {

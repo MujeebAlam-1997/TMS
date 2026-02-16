@@ -45,6 +45,7 @@ const navLinks = {
     ...commonLinks,
     { href: '/admin/requests', label: 'Requests', icon: Send },
     { href: '/requests/history', label: 'History', icon: History },
+    { href: '/reports', label: 'Reports', icon: FilePlus2 },
     { href: '/admin/users', label: 'Users', icon: Users },
     { href: '/manager/fleet', label: 'Fleet', icon: Car },
     // { href: '/manager/backup', label: 'Backup', icon: History },

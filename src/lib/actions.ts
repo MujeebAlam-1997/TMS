@@ -21,7 +21,8 @@ import {
     getAllVehicles,
     addVehicle,
     updateVehicle,
-    deleteVehicle
+    deleteVehicle,
+    getFilteredRequests
 } from './db';
 import type { TransportRequest, User, Driver, Vehicle } from './types';
 import { revalidatePath } from 'next/cache';
@@ -95,6 +96,10 @@ export async function reviewRequestAction(data: {
     reviewRequest(data);
     revalidatePath('/admin/requests');
     revalidatePath('/requests/history');
+}
+
+export async function generateReportAction(filters: import('./types').ReportFilters): Promise<TransportRequest[]> {
+    return getFilteredRequests(filters);
 }
 
 // Fleet Actions

@@ -158,7 +158,9 @@ export function getAllRequests(): TransportRequest[] {
             tr.*,
             d.name as driverName,
             d.contact as driverContact,
-            v.type as vehicleType
+            d.contact as driverContact,
+            v.type as vehicleType,
+            v.vehicleId as vehicleNumber
         FROM transport_requests tr
         LEFT JOIN drivers d ON tr.driverId = d.id
         LEFT JOIN vehicles v ON tr.vehicleId = v.id
@@ -282,6 +284,61 @@ export function reviewRequest(data: { id: number; status: 'Approved' | 'Disappro
         `).run(data.status, data.supervisorComments, data.reviewedBy, data.id);
         }
     } catch (e) { console.error('reviewRequest failed', e); }
+}
+
+export function getFilteredRequests(filters: import('./types').ReportFilters): TransportRequest[] {
+    try {
+        let query = `
+            SELECT 
+                tr.*,
+                d.name as driverName,
+                d.contact as driverContact,
+                d.contact as driverContact,
+                v.type as vehicleType,
+                v.vehicleId as vehicleNumber
+            FROM transport_requests tr
+            LEFT JOIN drivers d ON tr.driverId = d.id
+            LEFT JOIN vehicles v ON tr.vehicleId = v.id
+            WHERE 1=1
+        `;
+        const params: any[] = [];
+
+        if (filters.from) {
+            query += ` AND tr."from" >= ?`;
+            params.push(filters.from.toISOString());
+        }
+        if (filters.to) {
+            query += ` AND tr."to" <= ?`;
+            params.push(filters.to.toISOString());
+        }
+        if (filters.driverId) {
+            query += ` AND tr.driverId = ?`;
+            params.push(filters.driverId);
+        }
+        if (filters.vehicleId) {
+            query += ` AND tr.vehicleId = ?`;
+            params.push(filters.vehicleId);
+        }
+        if (filters.status) {
+            query += ` AND tr.status = ?`;
+            params.push(filters.status);
+        }
+        if (filters.requisitionType) {
+            query += ` AND tr.requisitionType = ?`;
+            params.push(filters.requisitionType);
+        }
+
+        query += ` ORDER BY tr.requestGeneratedDate DESC`;
+
+        const rows = db.prepare(query).all(...params) as any[];
+        return rows.map(row => ({
+            ...row,
+            from: new Date(row.from),
+            to: new Date(row.to),
+            requestGeneratedDate: row.requestGeneratedDate ? new Date(row.requestGeneratedDate) : new Date(row.from),
+            officials: row.officials ? JSON.parse(row.officials) : [],
+        }));
+    } catch (e) { console.error('getFilteredRequests failed', e); return []; }
 }
 
 // Fleet Management Functions

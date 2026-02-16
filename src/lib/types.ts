@@ -36,6 +36,7 @@ export type TransportRequest = {
   driverContact?: string;
   vehicleId?: string;
   vehicleType?: string;
+  vehicleNumber?: string;
   managerComments?: string; // Comments from Supervisor
   supervisorComments?: string; // Comments from Manager
   pdComments?: string;
@@ -71,3 +72,12 @@ export type Driver = {
   name: string;
   contact: string;
 }
+
+export type ReportFilters = {
+  from?: Date;
+  to?: Date;
+  driverId?: string;
+  vehicleId?: string;
+  status?: RequestStatus;
+  requisitionType?: 'Official' | 'Private';
+};
