@@ -28,6 +28,7 @@ import {
 import { generateReportAction, getAllDriversAction, getAllVehiclesAction } from '@/lib/actions';
 import type { Driver, Vehicle, TransportRequest, ReportFilters } from '@/lib/types';
 import RequestsTable from '@/components/shared/RequestsTable';
+import PageHeader from '@/components/shared/PageHeader';
 
 // Simple type for the form, mapping to ReportFilters
 type FormValues = {
@@ -105,7 +106,7 @@ export default function ReportsPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
+            <PageHeader title="Reports" description="Generate detailed reports based on filters." />
 
             <Card>
                 <CardHeader>

@@ -68,8 +68,8 @@ export default function AppSidebar() {
 
   return (
     <>
-      <aside className="w-64 flex-col bg-card text-card-foreground border-r hidden md:flex">
-        <div className="p-4 border-b">
+      <aside className="w-64 flex-col bg-sidebar text-sidebar-foreground border-r hidden md:flex">
+        <div className="p-4 border-b border-sidebar-border">
           <AppLogo />
         </div>
         <nav className="flex-1 p-4 space-y-2">
@@ -90,7 +90,7 @@ export default function AppSidebar() {
             );
           })}
         </nav>
-        <div className="p-4 mt-auto border-t">
+        <div className="p-4 mt-auto border-t border-sidebar-border">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start gap-2">
