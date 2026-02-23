@@ -44,7 +44,7 @@ function createTables() {
             destination TEXT NOT NULL,
             "from" DATETIME NOT NULL,
             "to" DATETIME NOT NULL,
-            status TEXT NOT NULL CHECK(status IN ('Pending', 'Forwarded', 'Approved', 'Disapproved', 'Rejected', 'Recommended', 'Not Recommended')),
+            status TEXT NOT NULL CHECK(status IN ('Pending', 'Forwarded', 'Approved', 'Disapproved', 'Rejected', 'Recommended', 'Not Recommended', 'Cancelled')),
             requestGeneratedDate DATETIME NOT NULL,
             
             managerComments TEXT,
@@ -264,7 +264,7 @@ export function forwardRequest(data: { id: number; driverId: string; vehicleId: 
     } catch (e) { console.error('forwardRequest failed', e); }
 }
 
-export function reviewRequest(data: { id: number; status: 'Approved' | 'Disapproved' | 'Recommended' | 'Not Recommended'; supervisorComments?: string; pdComments?: string; reviewedBy?: string; recommendedBy?: string; }) {
+export function reviewRequest(data: { id: number; status: 'Approved' | 'Disapproved' | 'Recommended' | 'Not Recommended'; supervisorComments?: string; pdComments?: string; reviewedBy?: string; recommendedBy?: string; driverId?: string; vehicleId?: string; }) {
     try {
         if (data.status === 'Recommended' || data.status === 'Not Recommended') {
             db.prepare(`
@@ -275,13 +275,27 @@ export function reviewRequest(data: { id: number; status: 'Approved' | 'Disappro
             WHERE id = ?
         `).run(data.status, data.pdComments, data.recommendedBy, data.id);
         } else {
-            db.prepare(`
-            UPDATE transport_requests 
-            SET status = ?, 
-                supervisorComments = ?,
-                reviewedBy = ?
-            WHERE id = ?
-        `).run(data.status, data.supervisorComments, data.reviewedBy, data.id);
+            let query = `
+                UPDATE transport_requests 
+                SET status = ?, 
+                    supervisorComments = ?,
+                    reviewedBy = ?
+            `;
+            const params: any[] = [data.status, data.supervisorComments, data.reviewedBy];
+
+            if (data.driverId) {
+                query += `, driverId = ?`;
+                params.push(data.driverId);
+            }
+            if (data.vehicleId) {
+                query += `, vehicleId = ?`;
+                params.push(data.vehicleId);
+            }
+
+            query += ` WHERE id = ?`;
+            params.push(data.id);
+
+            db.prepare(query).run(...params);
         }
     } catch (e) { console.error('reviewRequest failed', e); }
 }
@@ -339,6 +353,12 @@ export function getFilteredRequests(filters: import('./types').ReportFilters): T
             officials: row.officials ? JSON.parse(row.officials) : [],
         }));
     } catch (e) { console.error('getFilteredRequests failed', e); return []; }
+}
+
+export function cancelRequest(id: number): void {
+    try {
+        db.prepare(`UPDATE transport_requests SET status = 'Cancelled' WHERE id = ?`).run(id);
+    } catch (e) { console.error('cancelRequest failed', e); }
 }
 
 // Fleet Management Functions

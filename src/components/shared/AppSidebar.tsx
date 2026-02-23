@@ -15,6 +15,7 @@ import {
   Send,
   UserCircle,
   Users,
+  Download,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -48,7 +49,7 @@ const navLinks = {
     { href: '/reports', label: 'Reports', icon: FilePlus2 },
     { href: '/admin/users', label: 'Users', icon: Users },
     { href: '/manager/fleet', label: 'Fleet', icon: Car },
-    // { href: '/manager/backup', label: 'Backup', icon: History },
+    { href: '/manager/backup', label: 'Backup', icon: Download },
     // { href: '/manager/restore', label: 'Restore', icon: History }
   ],
   PD: [

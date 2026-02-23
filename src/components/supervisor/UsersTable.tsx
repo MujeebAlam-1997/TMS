@@ -22,7 +22,7 @@ import { DataTable, DataTableFilterMeta } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
 
-const roleVariant: { [key: string]: 'default' | 'secondary' | 'outline' } = {
+const roleVariant: { [key: string]: 'default' | 'secondary' | 'outline' | 'destructive' } = {
   Manager: 'default',
   Supervisor: 'secondary',
   User: 'outline',
@@ -128,23 +128,23 @@ export default function UsersTable({ users: initialUsers }: { users: User[] }) {
 
   const header = (
     <div className="flex items-center justify-between mb-3">
-    <h2 className="text-base">Users</h2>
-    <div className="relative">
-      <i className="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-      <InputText
-        value={globalFilter}
-        onChange={(e: any) => {
-          setGlobalFilter(e.target.value);
-          setFilters((f: any) => ({
-            ...f,
-            global: { value: e.target.value, matchMode: 'contains' },
-          }));
-        }}
-        placeholder="Search"
-        className="pl-10 font-normal"
-      />
+      <h2 className="text-base">Users</h2>
+      <div className="relative">
+        <i className="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <InputText
+          value={globalFilter}
+          onChange={(e: any) => {
+            setGlobalFilter(e.target.value);
+            setFilters((f: any) => ({
+              ...f,
+              global: { value: e.target.value, matchMode: 'contains' },
+            }));
+          }}
+          placeholder="Search"
+          className="pl-10 font-normal"
+        />
+      </div>
     </div>
-  </div>
   );
 
   return (
@@ -157,7 +157,7 @@ export default function UsersTable({ users: initialUsers }: { users: User[] }) {
       </div>
       <Card>
         <CardContent  >
-          
+
 
           <DataTable
             value={users}
@@ -174,7 +174,8 @@ export default function UsersTable({ users: initialUsers }: { users: User[] }) {
             onFilter={(e: any) => setFilters(e.filters)}
             emptyMessage="No users found."
             dataKey="id"
-            className="font-[Inter] text-[14px]"
+            className="text-[14px]"
+            style={{ fontFamily: '"Inter var", sans-serif' }}
           >
             <Column field="employeeNumber" header="Employee No." headerClassName="!text-sm  " />
             <Column field="name" header="Name" headerClassName="!text-sm  " />

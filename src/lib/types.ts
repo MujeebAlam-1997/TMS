@@ -12,7 +12,7 @@ export interface User {
   pdId?: string;
 }
 
-export type RequestStatus = 'Pending' | 'Forwarded' | 'Approved' | 'Disapproved' | 'Rejected' | 'Recommended' | 'Not Recommended';
+export type RequestStatus = 'Pending' | 'Forwarded' | 'Approved' | 'Disapproved' | 'Rejected' | 'Recommended' | 'Not Recommended' | 'Cancelled';
 
 export interface Official {
   employeeNumber: string;

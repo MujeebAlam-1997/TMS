@@ -92,6 +92,8 @@ export async function reviewRequestAction(data: {
     pdComments?: string;
     reviewedBy?: string; // Manager's name/ID
     recommendedBy?: string; // PD's name/ID
+    driverId?: string;
+    vehicleId?: string;
 }): Promise<void> {
     reviewRequest(data);
     revalidatePath('/admin/requests');
@@ -100,6 +102,13 @@ export async function reviewRequestAction(data: {
 
 export async function generateReportAction(filters: import('./types').ReportFilters): Promise<TransportRequest[]> {
     return getFilteredRequests(filters);
+}
+
+export async function cancelRequestAction(id: number): Promise<void> {
+    const { cancelRequest } = await import('./db');
+    cancelRequest(id);
+    revalidatePath('/requests/history');
+    revalidatePath('/admin/requests');
 }
 
 // Fleet Actions

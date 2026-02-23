@@ -29,6 +29,8 @@ import { generateReportAction, getAllDriversAction, getAllVehiclesAction } from 
 import type { Driver, Vehicle, TransportRequest, ReportFilters } from '@/lib/types';
 import RequestsTable from '@/components/shared/RequestsTable';
 import PageHeader from '@/components/shared/PageHeader';
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, BorderStyle, HeadingLevel } from 'docx';
+import { saveAs } from 'file-saver';
 
 // Simple type for the form, mapping to ReportFilters
 type FormValues = {
@@ -102,6 +104,62 @@ export default function ReportsPage() {
             requisitionType: 'all'
         });
         setReportData([]);
+    };
+
+    const handleExportWord = async () => {
+        if (reportData.length === 0) return;
+
+        const tableRows = [
+            new TableRow({
+                children: [
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Req. ID", bold: true })] })] }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Employee", bold: true })] })] }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Destination", bold: true })] })] }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Driver", bold: true })] })] }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Vehicle ID", bold: true })] })] }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date", bold: true })] })] }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Status", bold: true })] })] }),
+                ]
+            }),
+            ...reportData.map(req => new TableRow({
+                children: [
+                    new TableCell({ children: [new Paragraph(req.id.toString())] }),
+                    new TableCell({ children: [new Paragraph(req.name)] }),
+                    new TableCell({ children: [new Paragraph(req.destination)] }),
+                    new TableCell({ children: [new Paragraph(req.driverName || 'N/A')] }),
+                    new TableCell({ children: [new Paragraph(req.vehicleNumber || 'N/A')] }),
+                    new TableCell({ children: [new Paragraph(format(new Date(req.from), 'PP'))] }),
+                    new TableCell({ children: [new Paragraph(req.status)] }),
+                ]
+            }))
+        ];
+
+        const doc = new Document({
+            sections: [{
+                properties: {},
+                children: [
+                    new Paragraph({
+                        text: "Transport Requests Report",
+                        heading: HeadingLevel.HEADING_1,
+                        spacing: { after: 200 }
+                    }),
+                    new Paragraph({
+                        text: `Computer Generated Report on: ${format(new Date(), 'PPpp')}`,
+                        spacing: { after: 400 }
+                    }),
+                    new Table({
+                        width: {
+                            size: 100,
+                            type: WidthType.PERCENTAGE,
+                        },
+                        rows: tableRows,
+                    }),
+                ],
+            }],
+        });
+
+        const blob = await Packer.toBlob(doc);
+        saveAs(blob, `Transport_Report_${format(new Date(), 'yyyyMMdd_HHmm')}.docx`);
     };
 
     return (
@@ -322,8 +380,14 @@ export default function ReportsPage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Results</CardTitle>
                     {reportData.length > 0 && (
-                        <div className="text-sm text-muted-foreground">
-                            {reportData.length} records found
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm text-muted-foreground shrink-0">
+                                {reportData.length} records found
+                            </span>
+                            <Button variant="outline" size="sm" onClick={handleExportWord} className="shrink-0 flex items-center gap-2">
+                                <FileDown className="h-4 w-4" />
+                                Export to Word
+                            </Button>
                         </div>
                     )}
                 </CardHeader>

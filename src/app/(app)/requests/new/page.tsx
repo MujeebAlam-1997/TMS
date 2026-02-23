@@ -7,13 +7,13 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+    Form,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -33,50 +33,50 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 
 const officialSchema = z.object({
-  name: z.string().min(2, 'Name is required'),
-  employeeNumber: z.string().min(1, 'Employee number is required'),
+    name: z.string().min(2, 'Name is required'),
+    employeeNumber: z.string().min(1, 'Employee number is required'),
 });
 
 const formSchema = z.object({
-  employeeNumber: z.string().min(1, 'Employee number is required'),
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  requisitionType: z.enum(['Official', 'Private'], {
-    required_error: 'You need to select a requisition type.',
-  }),
-  requestReason: z.enum(['For Meeting', 'For Purchase', 'Other'], {
-    required_error: 'You need to select a reason for the request.',
-  }),
-  departingLocation: z.string().min(1, 'Departing location is required'),
-  destination: z.string().min(1, 'Destination is required'),
-  from: z.date({ required_error: 'A start date is required.' }),
-  to: z.date({ required_error: 'An end date is required.' }),
-  fromTime: z.string({ required_error: 'A start time is required.' }),
-  toTime: z.string({ required_error: 'An end time is required.' }),
-  officials: z.array(officialSchema).optional(),
-  
-  // Meeting fields
-  letterId: z.string().optional(),
-  meetingAgenda: z.string().optional(),
-  venue: z.string().optional(),
+    employeeNumber: z.string().min(1, 'Employee number is required'),
+    name: z.string().min(2, 'Name must be at least 2 characters'),
+    requisitionType: z.enum(['Official', 'Private'], {
+        required_error: 'You need to select a requisition type.',
+    }),
+    requestReason: z.enum(['For Meeting', 'For Purchase', 'Other'], {
+        required_error: 'You need to select a reason for the request.',
+    }),
+    departingLocation: z.string().min(1, 'Departing location is required'),
+    destination: z.string().min(1, 'Destination is required'),
+    from: z.date({ required_error: 'A start date is required.' }),
+    to: z.date({ required_error: 'An end date is required.' }),
+    fromTime: z.string({ required_error: 'A start time is required.' }),
+    toTime: z.string({ required_error: 'An end time is required.' }),
+    officials: z.array(officialSchema).min(1, 'Please add at least one official.'),
 
-  // Purchase fields
-  purchaseDetails: z.string().optional(),
-  purchaseItems: z.string().optional(),
-  purchaseCaseNumber: z.string().optional(),
-  subject: z.string().optional(),
+    // Meeting fields
+    letterId: z.string().optional(),
+    meetingAgenda: z.string().optional(),
+    venue: z.string().optional(),
 
-  // Other field
-  otherPurpose: z.string().optional(),
+    // Purchase fields
+    purchaseDetails: z.string().optional(),
+    purchaseItems: z.string().optional(),
+    purchaseCaseNumber: z.string().optional(),
+    subject: z.string().optional(),
+
+    // Other field
+    otherPurpose: z.string().optional(),
 }).refine(data => {
     if (!data.from || !data.fromTime) return true;
     const [hours, minutes] = data.fromTime.split(':').map(Number);
     const fromDateTime = setSeconds(setMinutes(setHours(data.from, hours), minutes), 0);
     const now = new Date();
-    now.setSeconds(0, 0); 
+    now.setSeconds(0, 0);
     return fromDateTime >= now;
 }, {
-  message: "Start date and time must be in the future.",
-  path: ["from"],
+    message: "Start date and time must be in the future.",
+    path: ["from"],
 }).refine(data => {
     if (!data.from || !data.to || !data.fromTime || !data.toTime) return true;
     const [fromHours, fromMinutes] = data.fromTime.split(':').map(Number);
@@ -85,8 +85,8 @@ const formSchema = z.object({
     const toDateTime = setSeconds(setMinutes(setHours(data.to, toHours), toMinutes), 0);
     return toDateTime > fromDateTime;
 }, {
-  message: "End date and time must be after the start date and time.",
-  path: ["to"],
+    message: "End date and time must be after the start date and time.",
+    path: ["to"],
 }).refine(data => {
     if (data.requestReason === 'For Meeting') {
         return !!data.letterId && !!data.meetingAgenda && !!data.venue;
@@ -130,7 +130,7 @@ export default function NewRequestPage() {
             destination: '',
             fromTime: '09:00',
             toTime: '17:00',
-            officials: [],
+            officials: [{ name: '', employeeNumber: '' }],
             letterId: '',
             meetingAgenda: '',
             venue: '',
@@ -155,11 +155,11 @@ export default function NewRequestPage() {
             form.setValue('employeeNumber', user.employeeNumber);
             form.setValue('name', user.name);
         }
-        
+
         const now = new Date();
         const fromTimeDefault = format(now, 'HH:mm');
         const toTimeDefault = format(addMinutes(now, 10), 'HH:mm');
-        
+
         form.setValue('fromTime', fromTimeDefault);
         form.setValue('toTime', toTimeDefault);
         form.setValue('from', now);
@@ -167,14 +167,14 @@ export default function NewRequestPage() {
 
     }, [user, form]);
 
-    const {formState: {isSubmitting}} = form;
+    const { formState: { isSubmitting } } = form;
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         if (!user) return;
         try {
             const [fromHours, fromMinutes] = values.fromTime.split(':').map(Number);
             const fromDateTime = setSeconds(setMinutes(setHours(values.from, fromHours), fromMinutes), 0);
-            
+
             const [toHours, toMinutes] = values.toTime.split(':').map(Number);
             const toDateTime = setSeconds(setMinutes(setHours(values.to, toHours), toMinutes), 0);
 
@@ -202,6 +202,16 @@ export default function NewRequestPage() {
         }
     }
 
+    const onError = (errors: any) => {
+        if (errors.officials && !Array.isArray(errors.officials)) {
+            toast({
+                title: "Validation Error",
+                description: errors.officials.message || "Please add at least one official.",
+                variant: 'destructive'
+            });
+        }
+    };
+
     if (!isClient) {
         return null;
     }
@@ -215,8 +225,8 @@ export default function NewRequestPage() {
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                         
+                        <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
+
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-lg font-medium">Officials</h3>
@@ -225,6 +235,9 @@ export default function NewRequestPage() {
                                         Add Official
                                     </Button>
                                 </div>
+                                {form.formState.errors.officials && !Array.isArray(form.formState.errors.officials) && (
+                                    <p className="text-sm font-medium text-destructive">{form.formState.errors.officials.message}</p>
+                                )}
                                 {fields.length === 0 && <p className="text-sm text-muted-foreground">No officials added.</p>}
                                 <div className="space-y-4">
                                     {fields.map((field, index) => (
@@ -247,7 +260,7 @@ export default function NewRequestPage() {
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Employee Number</FormLabel>
-                                                            <FormControl><Input placeholder="Official's employee number" {...field} /></FormControl>
+                                                            <FormControl><Input maxLength={6} placeholder="Official's employee number" {...field} /></FormControl>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )}
@@ -260,7 +273,7 @@ export default function NewRequestPage() {
                                     ))}
                                 </div>
                             </div>
-                            
+
                             <Separator />
                             <div className="space-y-4">
                                 <h3 className="text-lg font-medium">Request Generated By</h3>
@@ -275,7 +288,7 @@ export default function NewRequestPage() {
                                     <FormField control={form.control} name="name" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Name</FormLabel>
-                                            <FormControl><Input placeholder="e.g., John Doe" {...field} disabled/></FormControl>
+                                            <FormControl><Input placeholder="e.g., John Doe" {...field} disabled /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -304,44 +317,44 @@ export default function NewRequestPage() {
                                         name="from"
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col flex-1">
-                                            <FormLabel>From</FormLabel>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button
-                                                    variant={"outline"}
-                                                    className={cn(
-                                                        "w-full pl-3 text-left font-normal",
-                                                        !field.value && "text-muted-foreground"
-                                                    )}
-                                                    >
-                                                    {field.value ? (
-                                                        format(field.value, "PP")
-                                                    ) : (
-                                                        <span>Pick a date</span>
-                                                    )}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={field.value}
-                                                    onSelect={field.onChange}
-                                                    disabled={(date) => {
-                                                        const today = new Date();
-                                                        today.setHours(0,0,0,0);
-                                                        return date < today;
-                                                    }}
-                                                    initialFocus
-                                                />
-                                                </PopoverContent>
-                                            </Popover>
-                                            <FormMessage />
+                                                <FormLabel>From</FormLabel>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button
+                                                                variant={"outline"}
+                                                                className={cn(
+                                                                    "w-full pl-3 text-left font-normal",
+                                                                    !field.value && "text-muted-foreground"
+                                                                )}
+                                                            >
+                                                                {field.value ? (
+                                                                    format(field.value, "PP")
+                                                                ) : (
+                                                                    <span>Pick a date</span>
+                                                                )}
+                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                        </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={field.value}
+                                                            onSelect={field.onChange}
+                                                            disabled={(date) => {
+                                                                const today = new Date();
+                                                                today.setHours(0, 0, 0, 0);
+                                                                return date < today;
+                                                            }}
+                                                            initialFocus
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+                                                <FormMessage />
                                             </FormItem>
                                         )}
-                                        />
+                                    />
                                     <FormField control={form.control} name="fromTime" render={({ field }) => (
                                         <FormItem className='flex flex-col'>
                                             <FormLabel>Time</FormLabel>
@@ -353,53 +366,53 @@ export default function NewRequestPage() {
                                 </div>
                                 <div className="flex gap-2">
                                     <FormField
-                                    control={form.control}
-                                    name="to"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-col flex-1">
-                                        <FormLabel>To</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button
-                                                variant={"outline"}
-                                                className={cn(
-                                                    "w-full pl-3 text-left font-normal",
-                                                    !field.value && "text-muted-foreground"
-                                                )}
-                                                >
-                                                {field.value ? (
-                                                    format(field.value, "PP")
-                                                ) : (
-                                                    <span>Pick a date</span>
-                                                )}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                selected={field.value}
-                                                onSelect={field.onChange}
-                                                disabled={(date) => {
-                                                    const fromDate = form.getValues('from');
-                                                    if (!fromDate) {
-                                                        const today = new Date();
-                                                        today.setHours(0,0,0,0);
-                                                        return date < today;
-                                                    }
-                                                    const fromDateWithoutTime = new Date(fromDate);
-                                                    fromDateWithoutTime.setHours(0,0,0,0);
-                                                    return date < fromDateWithoutTime;
-                                                }}
-                                                initialFocus
-                                            />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
+                                        control={form.control}
+                                        name="to"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-col flex-1">
+                                                <FormLabel>To</FormLabel>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button
+                                                                variant={"outline"}
+                                                                className={cn(
+                                                                    "w-full pl-3 text-left font-normal",
+                                                                    !field.value && "text-muted-foreground"
+                                                                )}
+                                                            >
+                                                                {field.value ? (
+                                                                    format(field.value, "PP")
+                                                                ) : (
+                                                                    <span>Pick a date</span>
+                                                                )}
+                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                        </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={field.value}
+                                                            onSelect={field.onChange}
+                                                            disabled={(date) => {
+                                                                const fromDate = form.getValues('from');
+                                                                if (!fromDate) {
+                                                                    const today = new Date();
+                                                                    today.setHours(0, 0, 0, 0);
+                                                                    return date < today;
+                                                                }
+                                                                const fromDateWithoutTime = new Date(fromDate);
+                                                                fromDateWithoutTime.setHours(0, 0, 0, 0);
+                                                                return date < fromDateWithoutTime;
+                                                            }}
+                                                            initialFocus
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
                                     />
                                     <FormField control={form.control} name="toTime" render={({ field }) => (
                                         <FormItem className='flex flex-col'>
@@ -428,7 +441,7 @@ export default function NewRequestPage() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
-                                 <FormField control={form.control} name="requestReason" render={({ field }) => (
+                                <FormField control={form.control} name="requestReason" render={({ field }) => (
                                     <FormItem className="space-y-3">
                                         <FormLabel>Reason for Request</FormLabel>
                                         <FormControl>
@@ -468,7 +481,7 @@ export default function NewRequestPage() {
                                 </div>
                             )}
 
-                             {requestReason === 'For Purchase' && (
+                            {requestReason === 'For Purchase' && (
                                 <div className="space-y-8 pt-4 border-t">
                                     <div className="grid md:grid-cols-2 gap-8">
                                         <FormField control={form.control} name="purchaseCaseNumber" render={({ field }) => (
@@ -480,16 +493,16 @@ export default function NewRequestPage() {
                                         <FormField control={form.control} name="purchaseDetails" render={({ field }) => (
                                             <FormItem><FormLabel>Details of Purchase</FormLabel><FormControl><Textarea placeholder="Describe the purchase" {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
-                                         <FormField control={form.control} name="purchaseItems" render={({ field }) => (
+                                        <FormField control={form.control} name="purchaseItems" render={({ field }) => (
                                             <FormItem><FormLabel>Items to be Purchased</FormLabel><FormControl><Textarea placeholder="List items..." {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                     </div>
                                 </div>
                             )}
 
-                             {requestReason === 'Other' && (
+                            {requestReason === 'Other' && (
                                 <div className="space-y-8 pt-4 border-t">
-                                     <FormField control={form.control} name="otherPurpose" render={({ field }) => (
+                                    <FormField control={form.control} name="otherPurpose" render={({ field }) => (
                                         <FormItem><FormLabel>Purpose with Detail</FormLabel><FormControl><Textarea placeholder="Please provide a detailed purpose for the request" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                 </div>
